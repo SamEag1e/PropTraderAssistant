@@ -1,10 +1,13 @@
 from datetime import timedelta
+
 from trade import Trade
 
 
+# ---------------------------------------------------------------------
 def group_overlapping_trades(trades, time_window_minutes=5):
     """
-    Groups trades that overlap or are within a time window into overlapping trades.
+    Groups trades that overlap or are within
+    a time window into overlapping trades.
     """
     overlapping_trades = []
     current_group = [trades[0]]  # Start with the first trade
@@ -29,6 +32,7 @@ def group_overlapping_trades(trades, time_window_minutes=5):
     return overlapping_trades
 
 
+# ---------------------------------------------------------------------
 def eighty_percent_rule_check(overlapping_trades):
     """
     Checks if the 80% rule is satisfied:
@@ -43,4 +47,4 @@ def eighty_percent_rule_check(overlapping_trades):
 
     if required_x <= 0:
         return "80% Rule Passed."
-    return f"80% Rule Failed. Required X: {required_x:.2f}"
+    return f"80% Rule Failed. Required: {(required_x + 0.01):.2f} profit."
