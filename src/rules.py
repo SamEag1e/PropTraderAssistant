@@ -1,4 +1,5 @@
 from datetime import timedelta
+import copy
 
 from trade import Trade
 
@@ -6,29 +7,39 @@ from trade import Trade
 # ---------------------------------------------------------------------
 def group_overlapping_trades(trades, time_window_minutes=5):
     """
-    Groups trades that overlap or are within
-    a time window into overlapping trades.
+    Groups trades based on the updated overlapping trade rule.
     """
     overlapping_trades = []
-    current_group = [trades[0]]  # Start with the first trade
+    current_group = None
 
-    for trade in trades[1:]:
-        last_trade_in_group = current_group[-1]
+    for trade in trades:
+        # Skip all trades until the first profit trade
+        if current_group is None and trade.profit <= 0:
+            continue
 
-        if trade.open <= last_trade_in_group.close + timedelta(
-            minutes=time_window_minutes
-        ):
-            # Merge overlapping trades
-            total_profit = sum(t.profit for t in current_group) + trade.profit
-            earliest_open = min(t.open for t in current_group + [trade])
-            latest_close = max(t.close for t in current_group + [trade])
-            current_group = [Trade(total_profit, earliest_open, latest_close)]
-        else:
-            # Save the current group and start a new one
-            overlapping_trades.append(current_group[0])
-            current_group = [trade]
+        if current_group is None:
+            # Start the first group with the first profit trade
+            current_group = copy.deepcopy(trade)
+            continue
 
-    overlapping_trades.append(current_group[0])
+        # Check if the current trade is within the time window
+        last_close = current_group.close
+        if trade.open <= last_close + timedelta(minutes=time_window_minutes):
+            # Extend the group's close time
+            current_group.close = max(current_group.close, trade.close)
+
+            if trade.profit > 0:
+                # Add profit only if the trade is profitable
+                current_group.profit += trade.profit
+            continue
+        # End the current group and start a new one
+        overlapping_trades.append(current_group)
+        current_group = copy.deepcopy(trade) if trade.profit > 0 else None
+
+    # Add the final group if it exists
+    if current_group:
+        overlapping_trades.append(current_group)
+
     return overlapping_trades
 
 
@@ -48,3 +59,35 @@ def eighty_percent_rule_check(overlapping_trades):
     if required_x <= 0:
         return "80% Rule Passed."
     return f"80% Rule Failed. Required: {(required_x + 0.01):.2f} profit."
+
+
+# ---------------------------------------------------------------------
+def fast_scalp_profit_rule(trades, max_duration_seconds=30, max_percentage=20):
+    """
+    Checks if the sum of profitable trades opened and closed within a short time window
+    (e.g., <= 30 seconds) is less than a specified percentage of gross profit.
+
+    If the rule is not passed, calculates the required x such that:
+    sum_fast_scalp_trades < (gross_profit + required_x) * (max_percentage / 100)
+
+    Returns the result of the check or the required additional profit to pass the rule.
+    """
+    # Calculate the sum of profits for trades opened and closed within the time window
+    sum_fast_scalp_trades = sum(
+        trade.profit
+        for trade in trades
+        if trade.profit > 0
+        and (trade.close - trade.open).total_seconds() <= max_duration_seconds
+    )
+
+    # Calculate the total gross profit (sum of all profitable trades)
+    gross_profit = sum(trade.profit for trade in trades if trade.profit > 0)
+
+    # Solve for X: sum_fast_scalp_trades < (gross_profit + X) * (max_percentage / 100)
+    required_x = (
+        sum_fast_scalp_trades / (max_percentage / 100)
+    ) - gross_profit
+
+    if required_x <= 0:
+        return "Fast Scalp Profit Rule Passed."
+    return f"Fast Scalp Profit Rule Failed. Required: {(required_x + 0.01):.2f} profit."
