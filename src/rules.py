@@ -1,8 +1,6 @@
 from datetime import timedelta
 import copy
 
-from trade import Trade
-
 
 # ---------------------------------------------------------------------
 def group_overlapping_trades(trades, time_window_minutes=5):

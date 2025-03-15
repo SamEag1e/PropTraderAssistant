@@ -1,5 +1,5 @@
-from read import get_html_trades
-from rules import (
+from src.read import get_html_trades
+from src.rules import (
     eighty_percent_rule_check,
     group_overlapping_trades,
     fast_scalp_profit_rule,
@@ -8,7 +8,6 @@ from rules import (
 
 # ---------------------------------------------------------------------
 def main():
-    # Input: Assume we are using an HTML file for now
     file_path = "trade_history.html"
 
     trades = get_html_trades(file_path)

@@ -2,7 +2,7 @@ from datetime import datetime
 
 from bs4 import BeautifulSoup
 
-from trade import Trade
+from src.trade import Trade
 
 
 # ---------------------------------------------------------------------
